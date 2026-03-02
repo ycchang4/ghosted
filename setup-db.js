@@ -30,6 +30,20 @@ async function setup() {
       )
     `)
 
+        await pool.query(`
+      CREATE TABLE IF NOT EXISTS processed_emails (
+        email_id TEXT PRIMARY KEY,
+        processed_at TIMESTAMP DEFAULT NOW()
+      )
+    `)
+
+        await pool.query(`
+      CREATE TABLE IF NOT EXISTS pipeline_state (
+        id INTEGER PRIMARY KEY DEFAULT 1,
+        last_run_at TIMESTAMP
+      )
+    `)
+
         console.log('✅ Tables created successfully')
     } catch (err) {
         console.error('❌ Error creating tables:', err)
