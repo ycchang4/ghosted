@@ -1,36 +1,69 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+Ghosted
+A personal job application tracker that reads your Gmail, classifies emails with AI, and displays your pipeline in a clean dashboard.
+How it works
 
-## Getting Started
+Gmail pipeline — connects to your Gmail via OAuth, fetches job-related emails, strips HTML, and sends the body to OpenAI for classification
+State machine — enforces valid status transitions (e.g. you can't go from rejection back to applied)
+Dashboard — visualizes your pipeline as a Kanban board and funnel chart
 
-First, run the development server:
+Tech stack
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+Framework: Next.js 14 (App Router, TypeScript, Tailwind)
+AI: OpenAI gpt-4o-mini
+Database: PostgreSQL on Neon
+Email: Google Gmail API with OAuth
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Project structure
+app/
+  api/
+    applications/
+      route.ts          ← GET all applications, POST manual entry
+      [id]/route.ts     ← GET single application, DELETE
+  dashboard/
+    page.tsx            ← Kanban board + funnel chart
+  lib/
+    gmail-auth.js       ← Gmail OAuth connection
+    gmail-fetch.js      ← Email fetching
+    classifier.js       ← OpenAI classification
+    db.js               ← Database queries + state machine
+    pipeline.js         ← Wires everything together
+setup-db.js             ← One-time database setup
+Database schema
+sqlapplications (id, company, role, current_status, first_seen_at, last_updated_at, source_email_thread_id)
+events       (id, application_id, event_type, raw_email_id, timestamp)
+Status state machine
+applied   → interview, rejection, ghosted
+interview → rejection, offer
+rejection → (terminal)
+offer     → (terminal)
+ghosted   → interview
+Setup
+1. Install dependencies
+bashnpm install
+2. Configure environment variables
+Create .env.local:
+DATABASE_URL=your_neon_connection_string
+OPENAI_API_KEY=your_openai_key
+NEXTAUTH_SECRET=your_random_secret
+NEXTAUTH_URL=http://localhost:3000
+GOOGLE_CLIENT_ID=your_google_client_id
+GOOGLE_CLIENT_SECRET=your_google_client_secret
+3. Set up the database
+bashnode setup-db.js
+4. Run Gmail OAuth (first time)
+bashnode app/lib/gmail-auth.js
+5. Run the pipeline
+bashnode app/lib/pipeline.js
+6. Start the dashboard
+bashnpm run dev
+Visit http://localhost:3000/dashboard
+Roadmap
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+ Google OAuth for multi-user support
+ Gmail token caching (remove re-auth on every run)
+ Ghosting detection (flag apps with no update after 21 days)
+ Auto-refresh / polling on dashboard
+ Deploy to Vercel
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Important
+Never commit credentials.json or .env.local to GitHub. Both are in .gitignore.
