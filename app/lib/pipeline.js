@@ -4,6 +4,8 @@ const { classifyEmail } = require('./classifier')
 const { findOrCreateApplication, logEvent } = require('./db')
 const { Pool } = require('pg')
 require('dotenv').config({ path: '.env.local' })
+const { fetchEmails } = require('./gmail-fetch')
+
 
 const pool = new Pool({
     connectionString: process.env.DATABASE_URL,
@@ -80,16 +82,20 @@ async function runPipeline() {
     }
 
     // 2. Build Gmail query — add date filter if we have a last run date
-    const dateFilter = lastRun ? ` after:${toGmailDate(new Date(lastRun))}` : ''
-    const q = `(subject:"application" OR subject:"thank you for applying" OR subject:"application update" OR subject:"your application" OR subject:"invitation" OR subject:"interview")${dateFilter}`
+    // const dateFilter = lastRun ? ` after:${toGmailDate(new Date(lastRun))}` : ''
 
+    const timestamp = Math.floor(new Date(lastRun).getTime() / 1000);
+    // const q = `(subject:"application" OR subject:"thank you for applying" OR subject:"application update"
+    // OR subject:"your application" OR subject:"invitation" OR subject:"interview")${dateFilter}`
+    const q = `(subject:"application" OR subject:"thank you for applying" OR subject:"application update"
+            OR subject:"your application" OR subject:"invitation" OR subject:"interview") after:${timestamp + 1}`
     const auth = await authorize()
     const gmail = google.gmail({ version: 'v1', auth })
 
     const res = await gmail.users.messages.list({
         userId: 'me',
         q,
-        maxResults: 15  // raised from 10 — incremental runs won't have many anyway
+        maxResults: 15
     })
 
     const messages = res.data.messages || []
@@ -145,6 +151,7 @@ async function runPipeline() {
         } catch (err) {
             console.error(`❌ Error processing email ${msg.id}:`, err)
             continue
+
         }
     }
 
