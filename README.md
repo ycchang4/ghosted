@@ -91,13 +91,6 @@ npm run dev
 
 Visit `http://localhost:3000/dashboard`
 
-## Roadmap
-
-- [ ] Google OAuth for multi-user support
-- [ ] Gmail token caching (remove re-auth on every run)
-- [ ] Ghosting detection (flag apps with no update after 21 days)
-- [ ] Auto-refresh / polling on dashboard
-- [ ] Deploy to Vercel
 
 ## Important
 
